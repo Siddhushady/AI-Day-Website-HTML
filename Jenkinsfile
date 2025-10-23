@@ -4,7 +4,6 @@ pipeline {
     environment {
         DOCKER_IMAGE = "rsiddharth2264/jenkins-pipeline"
         GITHUB_CREDENTIALS = 'github-creds'
-        KUBECONF = credentials('kubeconfig') // create this in Jenkins with your kubeconfig content
         APP_NAME = "ai-day-app"
         REPLICAS = 2
         NAMESPACE = "default"
@@ -31,9 +30,8 @@ pipeline {
 
         stage('Determine Current Color') {
             steps {
-                withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     script {
-                        // Try to get current color from service
                         def currentColor = sh(script: "kubectl -n $NAMESPACE get svc $APP_NAME -o jsonpath='{.spec.selector.color}' || echo 'none'", returnStdout: true).trim()
                         env.CURRENT_COLOR = currentColor
                         env.NEW_COLOR = (currentColor == "blue") ? "green" : "blue"
@@ -46,9 +44,8 @@ pipeline {
 
         stage('Render & Apply Deployment') {
             steps {
-                withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     script {
-                        // Replace variables in deployment template
                         sh """
                         sed -e 's|{{COLOR}}|${NEW_COLOR}|g' \\
                             -e 's|{{IMAGE}}|${DOCKER_IMAGE}:${BUILD_NUMBER}|g' \\
@@ -56,7 +53,6 @@ pipeline {
                             -e 's|{{REPLICAS}}|${REPLICAS}|g' k8s/deployment-bluegreen.yaml > /tmp/deploy-${NEW_COLOR}.yaml
                         kubectl -n $NAMESPACE apply -f /tmp/deploy-${NEW_COLOR}.yaml
                         """
-                        // Apply service selector for new color
                         sh """
                         sed -e 's|{{APP}}|${APP_NAME}|g' -e 's|{{COLOR}}|${NEW_COLOR}|g' k8s/service.yaml > /tmp/service.yaml
                         kubectl -n $NAMESPACE apply -f /tmp/service.yaml
@@ -69,7 +65,7 @@ pipeline {
 
         stage('Switch Traffic') {
             steps {
-                withCredentials([string(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     script {
                         if (env.CURRENT_COLOR != 'none') {
                             echo "Switching service selector to new color ${NEW_COLOR}..."
