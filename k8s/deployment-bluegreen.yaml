@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{APP}}-{{COLOR}}
+  labels:
+    app: {{APP}}
+    color: {{COLOR}}
+spec:
+  replicas: {{REPLICAS}}
+  selector:
+    matchLabels:
+      app: {{APP}}
+      color: {{COLOR}}
+  template:
+    metadata:
+      labels:
+        app: {{APP}}
+        color: {{COLOR}}
+    spec:
+      containers:
+        - name: {{APP}}
+          image: {{IMAGE}}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
