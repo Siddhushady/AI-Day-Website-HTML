@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{APP}}
+  labels:
+    app: {{APP}}
+spec:
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+  selector:
+    app: {{APP}}
+    color: green   # default; Jenkins will patch to the active color
